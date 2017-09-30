@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk+" version="3.14"/>
+
+  <object class="GtkApplicationWindow" id="scope-window">
+    <property name="name">oscillot</property>
+    <property name="icon-name">utilities-system-monitor</property>
+    <child type="titlebar">
+      <object class="GtkHeaderBar" id="header">
+        <property name="show-close-button">True</property>
+        <property name="title">Oscillot</property>
+        <child>
+          <object class="GtkMenuButton">
+            <property name="popover">settings-popover</property>
+            <child>
+              <object class="GtkImage">
+                <property name="icon-name">open-menu-symbolic</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkMenuButton">
+            <property name="popover">style-popover</property>
+            <child>
+              <object class="GtkImage">
+                <property name="icon-name">applications-graphics-symbolic</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkDrawingArea" id="graph-area">
+      </object>
+    </child>
+  </object>
+
+  <object class="GtkPopover" id="settings-popover">
+    <child>
+      <object class="GtkGrid" id="settings-popover-grid">
+        <property name="orientation">vertical</property>
+        <property name="row-spacing">3</property>
+        <property name="column-spacing">6</property>
+        <property name="margin">6</property>
+        <child>
+          <object class="GtkLabel">
+            <property name="justify">right</property>
+            <property name="xalign">1</property>
+            <property name="label">Skip</property>
+            <style>
+              <class name="dim-label"/>
+            </style>
+          </object>
+          <packing>
+            <property name="left-attach">0</property>
+            <property name="top-attach">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="justify">right</property>
+            <property name="xalign">1</property>
+            <property name="label">Direction</property>
+            <style>
+              <class name="dim-label"/>
+            </style>
+          </object>
+          <packing>
+            <property name="left-attach">0</property>
+            <property name="top-attach">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="justify">right</property>
+            <property name="xalign">1</property>
+            <property name="label">Cycle</property>
+            <style>
+              <class name="dim-label"/>
+            </style>
+          </object>
+          <packing>
+            <property name="left-attach">0</property>
+            <property name="top-attach">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkSpinButton">
+            <property name="adjustment">sample-rate</property>
+            <property name="digits">0</property>
+          </object>
+          <packing>
+            <property name="left-attach">1</property>
+            <property name="top-attach">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="homogeneous">True</property>
+            <style>
+              <class name="linked"/>
+            </style>
+            <child>
+              <object class="GtkToggleButton">
+                <property name="action-name">win.reverse</property>
+                <property name="action-target">true</property>
+                <child>
+                  <object class="GtkImage">
+                    <property name="icon-name">go-previous-symbolic</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkToggleButton">
+                <property name="action-name">win.reverse</property>
+                <property name="action-target">false</property>
+                <child>
+                  <object class="GtkImage">
+                    <property name="icon-name">go-next-symbolic</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="left-attach">1</property>
+            <property name="top-attach">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkToggleButton" id="hold-toggle">
+            <property name="action-name">win.hold</property>
+            <property name="action-target">true</property>
+            <child>
+              <object class="GtkImage">
+                <property name="icon-name">media-playlist-repeat-symbolic</property>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="left-attach">1</property>
+            <property name="top-attach">2</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+
+  <object class="GtkPopover" id="style-popover">
+    <!--<property name="width-request">600</property>-->
+    <property name="hexpand">True</property>
+    <child>
+      <object class="GtkGrid" id="style-popover-grid">
+        <property name="orientation">vertical</property>
+        <property name="row-spacing">3</property>
+        <property name="column-spacing">6</property>
+        <property name="margin">6</property>
+        <child>
+          <object class="GtkLabel">
+            <property name="justify">right</property>
+            <property name="xalign">1</property>
+            <property name="label">Colours</property>
+            <style>
+              <class name="dim-label"/>
+            </style>
+          </object>
+          <packing>
+            <property name="left-attach">0</property>
+            <property name="top-attach">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="justify">right</property>
+            <property name="xalign">1</property>
+            <property name="label">Line width</property>
+            <style>
+              <class name="dim-label"/>
+            </style>
+          </object>
+          <packing>
+            <property name="left-attach">0</property>
+            <property name="top-attach">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="justify">right</property>
+            <property name="xalign">1</property>
+            <property name="label">Antialias</property>
+            <style>
+              <class name="dim-label"/>
+            </style>
+          </object>
+          <packing>
+            <property name="left-attach">0</property>
+            <property name="top-attach">3</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="justify">right</property>
+            <property name="xalign">1</property>
+            <property name="label">Cursor</property>
+            <style>
+              <class name="dim-label"/>
+            </style>
+          </object>
+          <packing>
+            <property name="left-attach">0</property>
+            <property name="top-attach">4</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="justify">right</property>
+            <property name="xalign">1</property>
+            <property name="label">Gain</property>
+            <style>
+              <class name="dim-label"/>
+            </style>
+          </object>
+          <packing>
+            <property name="left-attach">0</property>
+            <property name="top-attach">5</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="halign">start</property>
+            <property name="orientation">horizontal</property>
+            <style>
+              <class name="linked"/>
+            </style>
+            <child>
+              <object class="GtkColorButton" id="background-colour-picker">
+                <property name="halign">start</property>
+                <property name="expand">True</property>
+                <property name="use-alpha">True</property>
+                <property name="color">#000000000fff</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkColorButton" id="foreground-colour-picker">
+                <property name="halign">start</property>
+                <property name="use-alpha">True</property>
+                <property name="color">#000fff000fff</property>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="left-attach">1</property>
+            <property name="top-attach">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkScale">
+            <property name="adjustment">line-size</property>
+            <property name="digits">2</property>
+          </object>
+          <packing>
+            <property name="left-attach">1</property>
+            <property name="top-attach">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkSwitch" id="antialias-switch">
+            <property name="halign">start</property>
+          </object>
+          <packing>
+            <property name="left-attach">1</property>
+            <property name="top-attach">3</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkSwitch" id="cursor-switch">
+            <property name="halign">start</property>
+            <property name="active">True</property>
+          </object>
+          <packing>
+            <property name="left-attach">1</property>
+            <property name="top-attach">4</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkScale" id="gain-scale">
+            <property name="adjustment">gain</property>
+            <property name="digits">2</property>
+          </object>
+          <packing>
+            <property name="left-attach">1</property>
+            <property name="top-attach">5</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+
+  <object class="GtkAdjustment" id="line-size">
+    <property name="lower">1</property>
+    <property name="upper">50</property>
+    <property name="value">1</property>
+  </object>
+  <object class="GtkAdjustment" id="sample-rate">
+    <property name="step-increment">1</property>
+    <property name="lower">1</property>
+    <property name="upper">32</property>
+    <property name="value">1</property>
+  </object>
+  <object class="GtkAdjustment" id="gain">
+    <property name="lower">0</property>
+    <property name="upper">4</property>
+    <property name="value">1</property>
+  </object>
+</interface>
