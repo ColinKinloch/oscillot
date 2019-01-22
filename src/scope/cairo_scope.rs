@@ -10,13 +10,15 @@ impl super::Renderer for cairo::Context {
       self.scale(-1f64, 1f64);
       self.translate(-(style.width as f64), 0.);
     }
-    
-    if !style.antialias {
-      self.set_antialias(cairo::enums::Antialias::None);
+
+    let antialias_type = if style.antialias {
+        cairo::Antialias::None
     } else {
-      self.set_antialias(cairo::enums::Antialias::Fast);
-    }
-    
+        cairo::Antialias::Fast
+    };
+
+    self.set_antialias(antialias_type);
+
     {
       let ref c = style.foreground_colour;
       self.set_source_rgba(c.red, c.green, c.blue, c.alpha);
@@ -37,4 +39,3 @@ impl super::Renderer for cairo::Context {
     self.stroke();
   }
 }
-

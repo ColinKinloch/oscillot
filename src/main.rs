@@ -1,4 +1,3 @@
-#![feature(iterator_step_by)]
 extern crate jack;
 
 extern crate gtk;
@@ -13,6 +12,7 @@ use gtk::prelude::*;
 use gio::prelude::*;
 use jack::prelude::*;
 
+use std::sync::mpsc::{channel, Receiver};
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
@@ -21,6 +21,10 @@ static APP_ID: &str = "org.colinkinloch.oscillot";
 static APP_PATH: &str = "/org/colinkinloch/oscillot";
 
 const RESOURCE_BYTES: &[u8] = include_bytes!("resources/oscillot.gresource");
+
+thread_local!(
+  static GLOBAL: RefCell<(Option<gtk::DrawingArea>, Option<Receiver<(usize, usize)>>)> = RefCell::new((None, None))
+);
 
 fn init_gui() {
   if gtk::init().is_err() {
@@ -50,6 +54,12 @@ fn main() {
   let (client, _status) = Client::new("oscillot", client_options::NO_START_SERVER).unwrap();
   let in_port = client.register_port("in", AudioInSpec::default()).unwrap();
 
+  let (tx, rx) = channel();
+
+  GLOBAL.with(move |global| {
+    (*global.borrow_mut()).1 = Some(rx)
+  });
+
   let process = {
     let scope = scope.clone();
     ClosureProcessHandler::new(move |_: &Client, ps: &ProcessScope| -> JackControl {
@@ -58,6 +68,7 @@ fn main() {
         let in_p_slice: &[f32] = &in_p;
         let mut scope = scope.lock().unwrap();
         let mut wc = scope.write_count;
+        let start_wc = wc;
 
         if wc > scope.samples.len() {
           wc = 0;
@@ -78,6 +89,9 @@ fn main() {
         } else {
           scope.style.cursor = None;
         }
+
+        tx.send((start_wc, wc)).expect("tx fail");
+        glib::idle_add(trigger_render);
       }
       JackControl::Continue
     })
@@ -95,8 +109,27 @@ fn main() {
     application.connect_shutdown(move |application| shutdown(application, running.clone()));
   }
 
-  application.run(std::env::args().collect::<Vec<_>>()
-    .iter().map(|arg| arg.as_str()).collect::<Vec<_>>().as_slice());
+  application.run(&std::env::args().collect::<Vec<_>>());
+}
+
+fn trigger_render() -> glib::Continue {
+  GLOBAL.with(|global| {
+    if let (Some(ref graph_area), Some(ref rx)) = *global.borrow() {
+      if let Ok((start_wc, end_wc)) = rx.try_recv() {
+        // TODO: Calculate refresh range
+        // TODO: Handle non cursored
+        if end_wc < start_wc {
+          graph_area.queue_draw_area(
+            start_wc as i32, 0,
+            graph_area.get_allocated_width(), graph_area.get_allocated_height());
+        }
+        graph_area.queue_draw_area(
+          0, 0,
+          end_wc as i32, graph_area.get_allocated_height());
+      }
+    }
+  });
+  glib::Continue(false)
 }
 
 fn activate(application: &gtk::Application, scope: Arc<Mutex<scope::Scope>>, running: Rc<RefCell<bool>>) {
@@ -109,7 +142,7 @@ fn activate(application: &gtk::Application, scope: Arc<Mutex<scope::Scope>>, run
   //window.show_all();
 
   let css = gtk::CssProvider::new();
-  window.get_style_context().unwrap().add_provider(&css, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
+  window.get_style_context().add_provider(&css, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
 
   let style_popover_grid = builder.get_object::<gtk::Grid>("style-popover-grid")
     .expect("Cannot get style popover grid");
@@ -124,6 +157,13 @@ fn activate(application: &gtk::Application, scope: Arc<Mutex<scope::Scope>>, run
 
   let graph_area = builder.get_object::<gtk::DrawingArea>("graph-area")
     .expect("Cannot get graph area.");
+
+  {
+    let graph_area = graph_area.clone();
+    GLOBAL.with(move |global| {
+      (*global.borrow_mut()).0 = Some(graph_area.clone())
+    });
+  }
 
   let line_size_adjustment = builder.get_object::<gtk::Adjustment>("line-size")
     .expect("Cannot get line-size adjustment");
@@ -186,7 +226,7 @@ fn activate(application: &gtk::Application, scope: Arc<Mutex<scope::Scope>>, run
         ".background {{background-color: rgba({}, {}, {}, {});}}",
         c.red * 255., c.green * 255., c.blue * 255., c.alpha
       );
-      CssProviderExtManual::load_from_data(&css, css_string.as_str())
+      css.load_from_data(css_string.as_bytes())
         .expect("failed to load background colour css");
     });
   }
@@ -269,10 +309,15 @@ fn activate(application: &gtk::Application, scope: Arc<Mutex<scope::Scope>>, run
   }
 
   {
-    idle_add(move || {
-      graph_area.queue_draw();
+    /*idle_add(move || {
+      //graph_area.queue_draw();
+      let scope = scope.lock().unwrap();
+      if let Ok((start_wc, end_wc)) = scope.rx.try_recv() {
+          let diff_wc = (end_wc as i32 - start_wc as i32) / 10;
+          graph_area.queue_draw_area(start_wc as i32, 0, start_wc as i32 + diff_wc, graph_area.get_allocated_height());
+      }
       Continue(*running.borrow())
-    });
+  });*/
   }
 
   style_popover_grid.show_all();
