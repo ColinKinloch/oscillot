@@ -23,7 +23,7 @@ static APP_PATH: &str = "/org/colinkinloch/oscillot";
 const RESOURCE_BYTES: &[u8] = include_bytes!("resources/oscillot.gresource");
 
 thread_local!(
-  static GLOBAL: RefCell<(Option<gtk::DrawingArea>, Option<Receiver<(usize, usize)>>)> = RefCell::new((None, None))
+  static GLOBAL: RefCell<(Option<gtk::DrawingArea>, Option<Receiver<(usize, usize)>>, Option<Arc<Mutex<scope::Scope>>>)> = RefCell::new((None, None, None))
 );
 
 fn init_gui() {
@@ -56,9 +56,14 @@ fn main() {
 
   let (tx, rx) = channel();
 
-  GLOBAL.with(move |global| {
-    (*global.borrow_mut()).1 = Some(rx)
-  });
+  {
+    let scope_mutex = scope.clone();
+    GLOBAL.with(move |global| {
+      let mut global = global.borrow_mut();
+      (*global).2 = Some(scope_mutex);
+      (*global).1 = Some(rx);
+    });
+  }
 
   let process = {
     let scope = scope.clone();
@@ -114,18 +119,43 @@ fn main() {
 
 fn trigger_render() -> glib::Continue {
   GLOBAL.with(|global| {
-    if let (Some(ref graph_area), Some(ref rx)) = *global.borrow() {
+    if let (Some(ref graph_area), Some(ref rx), Some(ref scope_mutex)) = *global.borrow() {
       if let Ok((start_wc, end_wc)) = rx.try_recv() {
+        let scope = scope_mutex.lock().unwrap();
+        let h = graph_area.get_allocated_height();
+        let w = graph_area.get_allocated_width();
+        let diff_wc = end_wc as i32 - start_wc as i32;
         // TODO: Calculate refresh range
         // TODO: Handle non cursored
-        if end_wc < start_wc {
-          graph_area.queue_draw_area(
-            start_wc as i32, 0,
-            graph_area.get_allocated_width(), graph_area.get_allocated_height());
+        // TODO: Update {line_width} pixels for cursor
+        let sr = scope.sample_rate as i32;
+        let s_wc = start_wc as i32 / sr;
+        let e_wc = end_wc as i32 / sr;
+        let qd_y = |area: &gtk::DrawingArea, start, end| {
+          area.queue_draw_area(
+            start, 0,
+            end, h);
+        };
+         ;
+        if scope.cursor {
+          let lw = (scope.style.line_size / 1.5) as i32;
+          qd_y(graph_area, s_wc - lw, s_wc + lw);
         }
-        graph_area.queue_draw_area(
-          0, 0,
-          end_wc as i32, graph_area.get_allocated_height());
+        //qd_y(graph_area, w as i32 - 500, w);
+        //qd_y(graph_area, end_wc as i32 - 2, end_wc as i32 + 2);
+        
+        if e_wc < s_wc {
+          println!("{} - {}", s_wc, w);
+          println!("{} - {}", 0, e_wc);
+          //qd_y(graph_area, start_wc as i32, w);
+          //graph_area.queue_draw_area(
+          //  0, 0,
+          //  end_wc as i32, h);
+        } else {
+          //graph_area.queue_draw_area(
+          //  start_wc as i32, 0,
+          //  end_wc as i32, h);
+        }
       }
     }
   });
